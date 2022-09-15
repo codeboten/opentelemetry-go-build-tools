@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/build-tools/chloggen/internal/entry"
 )
 
 func TestNew(t *testing.T) {
@@ -50,11 +51,8 @@ func TestNew(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// ctx := setupTestDir(t, []*entry.Entry{})
-
-			// err := initialize(ctx, tc.filename)
-			cmd := newCmd
-			err := cmd.Execute()
+			ctx := setupTestDir(t, []*entry.Entry{})
+			err := new(ctx, tc.filename)
 
 			if tc.wantErr != "" {
 				require.Regexp(t, tc.wantErr, err)
@@ -62,7 +60,7 @@ func TestNew(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			// require.Error(t, validate(ctx), "The new entry should not be valid without user input")
+			require.Error(t, validate(ctx), "The new entry should not be valid without user input")
 		})
 	}
 }

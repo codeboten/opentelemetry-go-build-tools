@@ -85,18 +85,7 @@ func TestUpdateE2E(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := setupTestDir(t, tc.entries)
-
-			cmd := updateCmd
-			args := []string{
-				"--changelog", ctx.ChangelogMD,
-				"--template", ctx.TemplateYAML,
-				"--changes-directory", ctx.UnreleasedDir,
-			}
-			if tc.dry {
-				args = append(args, "--dry")
-			}
-			cmd.SetArgs(args)
-			require.NoError(t, cmd.Execute())
+			require.NoError(t, update(ctx, tc.version, tc.dry))
 
 			actualBytes, err := os.ReadFile(ctx.ChangelogMD)
 			require.NoError(t, err)

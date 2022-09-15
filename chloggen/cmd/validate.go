@@ -18,29 +18,33 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
+	"go.opentelemetry.io/build-tools/chloggen/internal/chlog"
 
-	"go.opentelemetry.io/build-tools/chloggen/internal/entry"
+	"github.com/spf13/cobra"
 )
 
 var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Validates the files in the changelog directory",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if _, err := os.Stat(ctx.UnreleasedDir); err != nil {
-			return err
-		}
-
-		entries, err := entry.ReadEntries(ctx)
-		if err != nil {
-			return err
-		}
-		for _, entry := range entries {
-			if err = entry.Validate(); err != nil {
-				return err
-			}
-		}
-		fmt.Printf("PASS: all files in %s/ are valid\n", ctx.UnreleasedDir)
-		return nil
+		return validate(ctx)
 	},
+}
+
+func validate(ctx chlog.Context) error {
+	if _, err := os.Stat(ctx.UnreleasedDir); err != nil {
+		return err
+	}
+
+	entries, err := chlog.ReadEntries(ctx)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if err = entry.Validate(); err != nil {
+			return err
+		}
+	}
+	fmt.Printf("PASS: all files in %s/ are valid\n", ctx.UnreleasedDir)
+	return nil
 }

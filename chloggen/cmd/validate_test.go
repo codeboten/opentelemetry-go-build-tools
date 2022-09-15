@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -95,16 +94,7 @@ func TestValidateE2E(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := setupTestDir(t, tc.entries)
-			cmd := validateCmd
-			cmd.Flags().Set("changelog", ctx.ChangelogMD)
-			// 	"--template", ctx.TemplateYAML,
-			// 	"--changes-directory", ctx.UnreleasedDir,
-			// })
-			b := bytes.NewBufferString("")
-			cmd.SetOut(b)
-			err := cmd.Execute()
-
-			// err := validate(ctx)
+			err := validate(ctx)
 			// _, err := ioutil.ReadAll(b)
 			if tc.wantErr != "" {
 				require.Regexp(t, tc.wantErr, err)

@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"go.opentelemetry.io/build-tools/chloggen/internal/entry"
+	"go.opentelemetry.io/build-tools/chloggen/internal/chlog"
 )
 
 const (
@@ -38,68 +38,68 @@ var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Updates CHANGELOG.MD to include all new changes",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx.Unreleased(changesDirectory)
-		entries, err := entry.ReadEntries(ctx)
-		if err != nil {
-			return err
-		}
-
-		if len(entries) == 0 {
-			return fmt.Errorf("no entries to add to the changelog")
-		}
-
-		chlogUpdate, err := generateSummary(version, entries)
-		if err != nil {
-			return err
-		}
-
-		if dry {
-			fmt.Printf("Generated changelog updates:")
-			fmt.Println(chlogUpdate)
-			return nil
-		}
-
-		oldChlogBytes, err := os.ReadFile(ctx.ChangelogMD)
-		if err != nil {
-			return err
-		}
-		chlogParts := bytes.Split(oldChlogBytes, []byte(insertPoint))
-		if len(chlogParts) != 2 {
-			return fmt.Errorf("expected one instance of %s", insertPoint)
-		}
-
-		chlogHeader, chlogHistory := string(chlogParts[0]), string(chlogParts[1])
-
-		var chlogBuilder strings.Builder
-		chlogBuilder.WriteString(chlogHeader)
-		chlogBuilder.WriteString(insertPoint)
-		chlogBuilder.WriteString(chlogUpdate)
-		chlogBuilder.WriteString(chlogHistory)
-
-		tmpMD := ctx.ChangelogMD + ".tmp"
-		tmpChlogFile, err := os.Create(tmpMD)
-		if err != nil {
-			return err
-		}
-		if _, err := tmpChlogFile.WriteString(chlogBuilder.String()); err != nil {
-			return err
-		}
-		if err := tmpChlogFile.Close(); err != nil {
-			return err
-		}
-
-		if err := os.Rename(tmpMD, ctx.ChangelogMD); err != nil {
-			return err
-		}
-
-		fmt.Printf("Finished updating %s\n", ctx.ChangelogMD)
-
-		return entry.DeleteEntries(ctx)
+		return update(ctx, version, dry)
 	},
 }
 
-func generateSummary(string, []*entry.Entry) (string, error) {
-	return "", nil
+func update(ctx chlog.Context, version string, dry bool) error {
+	ctx.Unreleased(changesDirectory)
+	entries, err := chlog.ReadEntries(ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(entries) == 0 {
+		return fmt.Errorf("no entries to add to the changelog")
+	}
+
+	chlogUpdate, err := chlog.GenerateSummary(version, entries)
+	if err != nil {
+		return err
+	}
+
+	if dry {
+		fmt.Printf("Generated changelog updates:")
+		fmt.Println(chlogUpdate)
+		return nil
+	}
+
+	oldChlogBytes, err := os.ReadFile(ctx.ChangelogMD)
+	if err != nil {
+		return err
+	}
+	chlogParts := bytes.Split(oldChlogBytes, []byte(insertPoint))
+	if len(chlogParts) != 2 {
+		return fmt.Errorf("expected one instance of %s", insertPoint)
+	}
+
+	chlogHeader, chlogHistory := string(chlogParts[0]), string(chlogParts[1])
+
+	var chlogBuilder strings.Builder
+	chlogBuilder.WriteString(chlogHeader)
+	chlogBuilder.WriteString(insertPoint)
+	chlogBuilder.WriteString(chlogUpdate)
+	chlogBuilder.WriteString(chlogHistory)
+
+	tmpMD := ctx.ChangelogMD + ".tmp"
+	tmpChlogFile, err := os.Create(tmpMD)
+	if err != nil {
+		return err
+	}
+	if _, err := tmpChlogFile.WriteString(chlogBuilder.String()); err != nil {
+		return err
+	}
+	if err := tmpChlogFile.Close(); err != nil {
+		return err
+	}
+
+	if err := os.Rename(tmpMD, ctx.ChangelogMD); err != nil {
+		return err
+	}
+
+	fmt.Printf("Finished updating %s\n", ctx.ChangelogMD)
+
+	return chlog.DeleteEntries(ctx)
 }
 
 func init() {

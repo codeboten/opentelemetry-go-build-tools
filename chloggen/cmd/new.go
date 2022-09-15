@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/build-tools/chloggen/internal/chlog"
 )
 
 var (
@@ -31,31 +32,34 @@ var newCmd = &cobra.Command{
 	Use:   "new",
 	Short: "Creates new change file",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx.Unreleased(changesDirectory)
-		path := filepath.Join(ctx.UnreleasedDir, cleanFileName(filename))
-		var pathWithExt string
-		switch ext := filepath.Ext(path); ext {
-		case ".yaml":
-			pathWithExt = path
-		case ".yml":
-			pathWithExt = strings.TrimSuffix(path, ".yml") + ".yaml"
-		case "":
-			pathWithExt = path + ".yaml"
-		default:
-			return fmt.Errorf("non-yaml extension: %s", ext)
-		}
-
-		templateBytes, err := os.ReadFile(ctx.TemplateYAML)
-		if err != nil {
-			return err
-		}
-		err = os.WriteFile(pathWithExt, templateBytes, os.FileMode(0755))
-		if err != nil {
-			return err
-		}
-		fmt.Printf("Changelog entry template copied to: %s\n", pathWithExt)
-		return nil
+		return new(ctx, filename)
 	},
+}
+
+func new(ctx chlog.Context, filename string) error {
+	path := filepath.Join(ctx.UnreleasedDir, cleanFileName(filename))
+	var pathWithExt string
+	switch ext := filepath.Ext(path); ext {
+	case ".yaml":
+		pathWithExt = path
+	case ".yml":
+		pathWithExt = strings.TrimSuffix(path, ".yml") + ".yaml"
+	case "":
+		pathWithExt = path + ".yaml"
+	default:
+		return fmt.Errorf("non-yaml extension: %s", ext)
+	}
+
+	templateBytes, err := os.ReadFile(ctx.TemplateYAML)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(pathWithExt, templateBytes, os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Changelog entry template copied to: %s\n", pathWithExt)
+	return nil
 }
 
 func cleanFileName(filename string) string {
