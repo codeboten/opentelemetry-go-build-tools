@@ -12,11 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package entry
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v2"
+
+	"go.opentelemetry.io/build-tools/chloggen/internal/chlog"
 )
 
 type Entry struct {
@@ -27,12 +33,20 @@ type Entry struct {
 	SubText    string `yaml:"subtext"`
 }
 
+const (
+	Breaking     = "breaking"
+	Deprecation  = "deprecation"
+	NewComponent = "new_component"
+	Enhancement  = "enhancement"
+	BugFix       = "bug_fix"
+)
+
 var changeTypes = []string{
-	breaking,
-	deprecation,
-	newComponent,
-	enhancement,
-	bugFix,
+	Breaking,
+	Deprecation,
+	NewComponent,
+	Enhancement,
+	BugFix,
 }
 
 func (e Entry) Validate() error {
@@ -77,4 +91,48 @@ func (e Entry) String() string {
 		sb.WriteString(strings.Join(lines, "\n  "))
 	}
 	return sb.String()
+}
+
+func ReadEntries(ctx chlog.Context) ([]*Entry, error) {
+	entryYAMLs, err := filepath.Glob(filepath.Join(ctx.UnreleasedDir, "*.yaml"))
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]*Entry, 0, len(entryYAMLs))
+	for _, entryYAML := range entryYAMLs {
+		if filepath.Base(entryYAML) == filepath.Base(ctx.TemplateYAML) {
+			continue
+		}
+
+		fileBytes, err := os.ReadFile(entryYAML)
+		if err != nil {
+			return nil, err
+		}
+
+		entry := &Entry{}
+		if err = yaml.Unmarshal(fileBytes, entry); err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, nil
+}
+
+func DeleteEntries(ctx chlog.Context) error {
+	entryYAMLs, err := filepath.Glob(filepath.Join(ctx.UnreleasedDir, "*.yaml"))
+	if err != nil {
+		return err
+	}
+
+	for _, entryYAML := range entryYAMLs {
+		if filepath.Base(entryYAML) == filepath.Base(ctx.TemplateYAML) {
+			continue
+		}
+
+		if err := os.Remove(entryYAML); err != nil {
+			fmt.Printf("Failed to delete: %s\n", entryYAML)
+		}
+	}
+	return nil
 }

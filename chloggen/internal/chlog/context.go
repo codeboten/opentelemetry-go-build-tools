@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package chlog
 
 import (
 	"fmt"
@@ -28,26 +28,41 @@ const (
 )
 
 // chlogContext enables tests by allowing them to work in an test directory
-type chlogContext struct {
-	changelogMD   string
-	unreleasedDir string
-	templateYAML  string
+type Context struct {
+	rootDir       string
+	ChangelogMD   string
+	UnreleasedDir string
+	TemplateYAML  string
 }
 
-func newChlogContext(rootDir string) chlogContext {
-	return chlogContext{
-		changelogMD:   filepath.Join(rootDir, changelogMD),
-		unreleasedDir: filepath.Join(rootDir, unreleasedDir),
-		templateYAML:  filepath.Join(rootDir, unreleasedDir, templateYAML),
+func New(root, changelog, changesDir, template string) Context {
+	return Context{
+		rootDir:       root,
+		ChangelogMD:   changelog,
+		UnreleasedDir: changesDir,
+		TemplateYAML:  template,
 	}
 }
 
-var defaultCtx = newChlogContext(repoRoot())
+func NewContext(rootDir string) Context {
+	return Context{
+		rootDir:       rootDir,
+		ChangelogMD:   filepath.Join(rootDir, changelogMD),
+		UnreleasedDir: filepath.Join(rootDir, unreleasedDir),
+		TemplateYAML:  filepath.Join(rootDir, unreleasedDir, templateYAML),
+	}
+}
 
-func repoRoot() string {
+func (c *Context) Unreleased(unreleasedDir string) {
+	c.UnreleasedDir = filepath.Join(c.rootDir, unreleasedDir)
+	c.TemplateYAML = filepath.Join(c.rootDir, unreleasedDir, templateYAML)
+}
+
+var DefaultCtx = NewContext(RepoRoot())
+
+func RepoRoot() string {
 	dir, err := os.Getwd()
 	if err != nil {
-		// This is not expected, but just in case
 		fmt.Println("FAIL: Could not determine current working directory")
 	}
 	return dir
@@ -56,7 +71,6 @@ func repoRoot() string {
 func moduleDir() string {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
-		// This is not expected, but just in case
 		fmt.Println("FAIL: Could not determine module directory")
 	}
 	return filepath.Dir(filename)
